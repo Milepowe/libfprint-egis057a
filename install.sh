@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 #
-# Build and install libfprint with the EgisTec EH576 (egis0576) driver.
+# Build and install libfprint with the EgisTec EH57A (egis057a) driver.
 #
-# This clones a pinned upstream libfprint, drops the egis0576 driver into it,
+# This clones a pinned upstream libfprint, drops the egis057a driver into it,
 # applies a small meson patch, builds the full default driver set (so your other
 # fingerprint hardware keeps working), and installs it.
 #
-# A libfprint driver is compiled *into* libfprint-2.so — it is not a loadable
-# module — so "installing the driver" means installing a libfprint that contains
+# A libfprint driver is compiled *into* libfprint-2.so -- it is not a loadable
+# module -- so "installing the driver" means installing a libfprint that contains
 # it. This does NOT rebuild fprintd; the stock fprintd loads the new library via
 # its unchanged ABI.
 #
@@ -17,9 +17,9 @@ LIBFPRINT_VERSION="1.94.100"
 LIBFPRINT_URL="https://gitlab.freedesktop.org/libfprint/libfprint.git"
 PREFIX="${PREFIX:-/usr/local}"
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PATCH="$REPO/patches/libfprint-${LIBFPRINT_VERSION}-egis0576.patch"
+PATCH="$REPO/patches/libfprint-${LIBFPRINT_VERSION}-egis057a.patch"
 
-echo ">>> EgisTec EH576 libfprint driver installer"
+echo ">>> EgisTec EH57A (1c7a:057a) libfprint driver installer"
 echo "    libfprint version : $LIBFPRINT_VERSION"
 echo "    install prefix    : $PREFIX   (override with: PREFIX=/usr ./install.sh)"
 echo
@@ -47,20 +47,17 @@ echo ">>> cloning libfprint $LIBFPRINT_VERSION ..."
 git clone --quiet --depth 1 --branch "v$LIBFPRINT_VERSION" "$LIBFPRINT_URL" "$WORK/libfprint"
 cd "$WORK/libfprint"
 
-echo ">>> installing the egis0576 driver sources ..."
-cp "$REPO/driver/egis0576.c" "$REPO/driver/egis0576.h" libfprint/drivers/
-cp -r "$REPO/driver/egis0576" libfprint/drivers/
+echo ">>> installing the egis057a driver sources ..."
+cp "$REPO/driver/egis057a.c" "$REPO/driver/egis057a.h" libfprint/drivers/
+cp -r "$REPO/driver/egis057a" libfprint/drivers/
 
 echo ">>> applying the meson integration patch ..."
 git apply "$PATCH"
 
-echo ">>> configuring + building (full default driver set + egis0576) ..."
-# Extra meson options. The matcher defaults to the shipped clean-room one
-# (gabor); the two comparison flavours are:
-#   EGIS0576_MESON_ARGS="-Degis0576_matcher=vendor" ./install.sh      (Egis' own)
-#   EGIS0576_MESON_ARGS="-Degis0576_matcher=cleanroom" ./install.sh   (tsteppy's front-end)
-# (see driver/egis0576/egis_engine_cleanroom.c; switching flavours means re-enrolling)
-meson setup builddir --prefix="$PREFIX" --buildtype=release ${EGIS0576_MESON_ARGS:-}
+echo ">>> configuring + building (full default driver set + egis057a) ..."
+# Extra meson options can be passed with e.g.
+#   EGIS057A_MESON_ARGS="-Ddoc=false -Dgtk-examples=false" ./install.sh
+meson setup builddir --prefix="$PREFIX" --buildtype=release ${EGIS057A_MESON_ARGS:-}
 ninja -C builddir
 
 echo ">>> installing to $PREFIX (sudo) ..."
@@ -70,20 +67,16 @@ sudo ldconfig
 # --- suspend/resume integration --------------------------------------------
 # The sleep hook stops fprintd before suspend so no stale device claim survives
 # (an upstream gnome-shell/fprintd bug, not a driver issue) and re-enumerates the
-# sensor after resume. The old hard freeze on resume is fixed in the driver
-# itself, not by these files. USB autosuspend needs no rule: the driver was
-# validated with power/control=auto (the sensor is re-initialised on every
-# open). See integration/README.md. Fully reversible (delete the files).
+# sensor after resume. See integration/README.md. Fully reversible (delete the
+# files).
 echo ">>> installing suspend/resume integration (sleep hook + fprintd gate) ..."
-if [ -f "$REPO/integration/50-egis0576-fp-resume.sh" ]; then
-    sudo install -m 0755 "$REPO/integration/50-egis0576-fp-resume.sh"    /usr/lib/systemd/system-sleep/
-    # A no-autosuspend udev rule from an earlier version is retired: remove it.
-    sudo rm -f /etc/udev/rules.d/60-egis0576-fp-nosuspend.rules
+if [ -f "$REPO/integration/50-egis057a-fp-resume.sh" ]; then
+    sudo install -m 0755 "$REPO/integration/50-egis057a-fp-resume.sh"    /usr/lib/systemd/system-sleep/
     # Gate: hold fprintd's start while the resume hook re-enumerates the sensor
-    # (fail-open after 15 s). See integration/egis0576-fp-wait.
-    sudo install -Dm 0755 "$REPO/integration/egis0576-fp-wait" /usr/libexec/egis0576-fp-wait
-    sudo install -Dm 0644 "$REPO/integration/egis0576-fprintd-wait.conf" \
-        /etc/systemd/system/fprintd.service.d/10-egis0576-resume-wait.conf
+    # (fail-open after 15 s). See integration/egis057a-fp-wait.
+    sudo install -Dm 0755 "$REPO/integration/egis057a-fp-wait" /usr/libexec/egis057a-fp-wait
+    sudo install -Dm 0644 "$REPO/integration/egis057a-fprintd-wait.conf" \
+        /etc/systemd/system/fprintd.service.d/10-egis057a-resume-wait.conf
     sudo systemctl daemon-reload 2>/dev/null || true
     sudo udevadm control --reload-rules 2>/dev/null || true
     sudo udevadm trigger --attr-match=idVendor=1c7a 2>/dev/null || true
@@ -91,7 +84,7 @@ if [ -f "$REPO/integration/50-egis0576-fp-resume.sh" ]; then
 fi
 
 echo
-echo ">>> Done. libfprint (with egis0576) installed to $PREFIX."
+echo ">>> Done. libfprint (with egis057a) installed to $PREFIX."
 echo
 echo "    IMPORTANT: fprintd must load THIS libfprint, not the distro's."
 echo "    - If you installed to /usr/local, make sure $PREFIX/lib (or lib64) is on"
@@ -101,4 +94,4 @@ echo "      It should point at $PREFIX. If not, add $PREFIX/lib* to"
 echo "      /etc/ld.so.conf.d/ and re-run 'sudo ldconfig'."
 echo "    - Then restart the daemon:  sudo systemctl restart fprintd"
 echo
-echo "    Next: enroll a finger and enable PAM — see README.md."
+echo "    Next: enroll a finger (fprintd-enroll) and enable PAM -- see README.md."

@@ -1,8 +1,8 @@
 #!/bin/bash
 # ExecStartPre gate for fprintd: hold its start until the resume hook has
-# finished re-enumerating the EgisTec EH576.
+# finished re-enumerating the EgisTec EH57A.
 #
-# WHY: 50-egis0576-fp-resume.sh takes the sensor off the USB bus and puts it
+# WHY: 50-egis057a-fp-resume.sh takes the sensor off the USB bus and puts it
 # back (`authorized` 0 -> 1) in its `post` phase. That takes about a second, and
 # during it the device is either gone or freshly enumerated and not yet settled.
 # fprintd is D-Bus activated, so on resume the desktop can activate it inside
@@ -25,9 +25,9 @@
 # died must never disable fingerprint authentication until the next reboot. The
 # marker lives in /run, so a reboot clears it in any case.
 #
-# Install: /usr/libexec/egis0576-fp-wait, mode 0755, together with the drop-in
-# egis0576-fprintd-wait.conf. install.sh does this for you.
-MARKER=/run/egis0576-fp-resume.pending
+# Install: /usr/libexec/egis057a-fp-wait, mode 0755, together with the drop-in
+# egis057a-fprintd-wait.conf. install.sh does this for you.
+MARKER=/run/egis057a-fp-resume.pending
 TIMEOUT=15
 
 [ -e "$MARKER" ] || exit 0
@@ -39,10 +39,10 @@ while [ -e "$MARKER" ] && [ "$waited" -lt "$((TIMEOUT * 10))" ]; do
 done
 
 if [ -e "$MARKER" ]; then
-    logger -t egis0576-fp-wait \
+    logger -t egis057a-fp-wait \
         "resume marker still present after ${TIMEOUT}s -- starting fprintd anyway" 2>/dev/null
 else
-    logger -t egis0576-fp-wait \
+    logger -t egis057a-fp-wait \
         "sensor ready after $((waited / 10)).$((waited % 10))s, starting fprintd" 2>/dev/null
 fi
 exit 0

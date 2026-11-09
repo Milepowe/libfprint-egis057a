@@ -1,7 +1,6 @@
 /*
- * Egis Technology Inc. (aka. LighTuning) EH576 (1c7a:0576) driver for libfprint
- *
- * Copyright (C) 2026 Philipp Oster
+ * Copyright (C) 2026 Philipp Oster (derived from the egis0576 driver)
+ * Copyright (C) 2026 Milepower
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -21,6 +20,6 @@
 #pragma once
 
 /* The one USB interface the sensor exposes; everything else about the
- * protocol (endpoints, timeouts, image geometry, commands) is owned by the
- * transport in egis0576/egis0576_proto.{c,h}. */
-#define EGIS0576_INTF 0
+ * protocol (endpoints, timeouts, commands) is owned by the transport in
+ * egis057a/egis057a_proto.{c,h}. */
+#define EGIS057A_INTF 0
